@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { epic, getSection } from '../data/bank'
-import { toggleFavorite, useFavorites } from '../storage/useFavorites'
+import { epic } from '../data/bank'
+import { toggleFavorite, useFavorites } from '../storage/marks'
 import { QuizRunner } from '../quiz/QuizRunner'
+import { QuestionList } from './QuestionList'
 
 function useFavoriteQuestions() {
   const ids = useFavorites()
@@ -20,22 +21,13 @@ export function Favorites() {
         </p>
       ) : (
         <>
-          <ul className="fav-list">
-            {questions.map((q) => (
-              <li key={q.id} className="card fav">
-                <span className="chip" title={getSection(q.section)?.title}>{q.section}</span>
-                <p>{q.text || '(question with image)'}</p>
-                <button
-                  className="star on"
-                  onClick={() => toggleFavorite(q.id)}
-                  aria-label="Remove from favorites"
-                  title="Remove from favorites"
-                >
-                  ★
-                </button>
-              </li>
-            ))}
-          </ul>
+          <QuestionList
+            questions={questions}
+            actionIcon="★"
+            actionLabel="Remove from favorites"
+            actionClass="star on"
+            onAction={toggleFavorite}
+          />
           <div className="next-bar">
             <Link className="btn primary" to="/favorites/quiz">
               Practice favorites · {questions.length}

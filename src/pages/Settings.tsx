@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { saveNick, useNick } from '../storage/useNick'
 import { resetStreak, useStreak } from '../storage/useStreak'
-import { clearFavorites, useFavorites } from '../storage/useFavorites'
+import { clearExcluded, clearFavorites, useExcluded, useFavorites } from '../storage/marks'
 
 export function Settings() {
   const nick = useNick()
@@ -9,6 +9,7 @@ export function Settings() {
   const [saved, setSaved] = useState(false)
   const streak = useStreak()
   const favorites = useFavorites()
+  const excluded = useExcluded()
 
   return (
     <section>
@@ -57,6 +58,17 @@ export function Settings() {
           onClick={() => confirm('Remove all favorites?') && clearFavorites()}
         >
           Clear favorites
+        </button>
+      </div>
+
+      <div className="card">
+        <p>Excluded: {excluded.length}</p>
+        <button
+          className="btn"
+          disabled={!excluded.length}
+          onClick={() => confirm('Bring all excluded questions back?') && clearExcluded()}
+        >
+          Restore excluded
         </button>
       </div>
 

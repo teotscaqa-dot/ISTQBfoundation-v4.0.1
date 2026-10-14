@@ -73,6 +73,7 @@ h2 { margin: 0; }
   max-width: 9rem;
 }
 .header nav a.active { color: var(--text); background: var(--bg); font-weight: 600; }
+.header nav .ico { margin-right: 5px; }
 .streak { font-weight: 700; white-space: nowrap; }
 .streak small { color: var(--muted); font-weight: 400; }
 
@@ -176,6 +177,19 @@ label[for] { display: block; font-weight: 600; margin-bottom: 8px; }
   min-height: 44px;
 }
 .star.on { color: var(--star); }
+.marks { display: flex; align-items: center; }
+.exclude {
+  border: 0;
+  background: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  min-width: 44px;
+  min-height: 44px;
+}
+.exclude.on { color: var(--bad); }
+.excluded-note { color: var(--bad); font-size: 0.85rem; margin: 0 0 8px; }
 
 .question-text { font-size: 1.1rem; font-weight: 600; white-space: pre-line; }
 .hint { color: var(--accent); font-size: 0.9rem; margin: 6px 0 0; }
@@ -242,6 +256,10 @@ label[for] { display: block; font-weight: 600; margin-bottom: 8px; }
 .fav p { flex: 1; margin: 0; }
 
 @media (max-width: 600px) {
+  .header nav .label { display: none; }
+  .header nav .ico { margin-right: 0; font-size: 1.1rem; }
+  .header nav a { padding: 6px 12px; }
+  .header nav a.nick { max-width: 7rem; }
   .next-bar {
     position: fixed;
     left: 0;

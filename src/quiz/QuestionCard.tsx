@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Question } from '../types'
-import { toggleFavorite, useFavorites } from '../storage/useFavorites'
+import { toggleExcluded, toggleFavorite, useExcluded, useFavorites } from '../storage/marks'
 import { getSection, imageUrl } from '../data/bank'
 
 interface Props {
@@ -15,6 +15,7 @@ export function QuestionCard({ question, isLast, onAnswered, onNext }: Props) {
   const [revealed, setRevealed] = useState(false)
   const favorites = useFavorites()
   const isFavorite = favorites.includes(question.id)
+  const isExcluded = useExcluded().includes(question.id)
   const multi = question.correct.length > 1
   const section = getSection(question.section)
   const isCorrect =
@@ -57,16 +58,28 @@ export function QuestionCard({ question, isLast, onAnswered, onNext }: Props) {
     <article className="card">
       <div className="card-meta">
         <span className="chip">{question.section} · {section?.title}</span>
-        <button
-          className={isFavorite ? 'star on' : 'star'}
-          onClick={() => toggleFavorite(question.id)}
-          aria-pressed={isFavorite}
-          aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-          title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-        >
-          {isFavorite ? '★' : '☆'}
-        </button>
+        <div className="marks">
+          <button
+            className={isExcluded ? 'exclude on' : 'exclude'}
+            onClick={() => toggleExcluded(question.id)}
+            aria-pressed={isExcluded}
+            aria-label={isExcluded ? 'Bring back to quizzes' : 'Exclude from quizzes'}
+            title={isExcluded ? 'Bring back to quizzes' : 'Exclude from quizzes'}
+          >
+            ⊘
+          </button>
+          <button
+            className={isFavorite ? 'star on' : 'star'}
+            onClick={() => toggleFavorite(question.id)}
+            aria-pressed={isFavorite}
+            aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            {isFavorite ? '★' : '☆'}
+          </button>
+        </div>
       </div>
+      {isExcluded && <p className="excluded-note">Excluded — won't appear in topic quizzes.</p>}
 
       {question.text && <h2 className="question-text">{question.text}</h2>}
       {question.image && (

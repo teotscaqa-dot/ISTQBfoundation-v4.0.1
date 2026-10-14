@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { epic, questionCountBySection } from '../data/bank'
+import { useExcluded } from '../storage/marks'
 import { createPersistentStore } from '../storage/local'
 
 const selectionStore = createPersistentStore<string[]>('selected-sections', [])
@@ -28,7 +29,18 @@ export function Home() {
   const [selected, setSelected] = useState<string[]>(() =>
     selectionStore.get().filter((id) => questionCountBySection.has(id)),
   )
-  const total = selected.reduce((sum, id) => sum + (questionCountBySection.get(id) ?? 0), 0)
+  const excluded = useExcluded()
+  // Counts of questions still in rotation, i.e. not excluded.
+  const available = useMemo(() => {
+    const m = new Map(questionCountBySection)
+    const ids = new Set(excluded)
+    epic.questions.forEach((q) => ids.has(q.id) && m.set(q.section, (m.get(q.section) ?? 0) - 1))
+    return m
+  }, [excluded])
+  const countOf = (id: string) => available.get(id) ?? 0
+  const total = selected.reduce((sum, id) => sum + countOf(id), 0)
+  const availableTotal = allSectionIds.reduce((sum, id) => sum + countOf(id), 0)
+  const excludedCount = epic.questions.length - availableTotal
 
   function update(next: string[]) {
     setSelected(next)
@@ -53,14 +65,14 @@ export function Home() {
           onChange={() => update(allOn ? [] : allSectionIds)}
         />
         <span>All topics</span>
-        <span className="count">{epic.questions.length}</span>
+        <span className="count">{availableTotal}</span>
       </label>
 
       {epic.chapters.map((c) => {
         const sections = epic.sections.filter((s) => s.chapter === c.id)
         const ids = sections.map((s) => s.id)
         const on = ids.filter((id) => selected.includes(id)).length
-        const count = ids.reduce((sum, id) => sum + (questionCountBySection.get(id) ?? 0), 0)
+        const count = ids.reduce((sum, id) => sum + countOf(id), 0)
         return (
           <div key={c.id} className="chapter">
             <label className="topic chapter-head">
@@ -83,7 +95,7 @@ export function Home() {
                     <span>
                       <span className="num">{s.id}</span> {s.title}
                     </span>
-                    <span className="count">{questionCountBySection.get(s.id) ?? 0}</span>
+                    <span className="count">{countOf(s.id)}</span>
                   </label>
                 </li>
               ))}
@@ -91,6 +103,12 @@ export function Home() {
           </div>
         )
       })}
+
+      {excludedCount > 0 && (
+        <p className="muted small">
+          {excludedCount} excluded questions are skipped. <Link to="/excluded">Manage</Link>
+        </p>
+      )}
 
       <div className="next-bar">
         <button
