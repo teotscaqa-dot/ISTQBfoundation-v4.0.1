@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { epic, questionCountBySection } from '../data/bank'
-import { useExcluded } from '../storage/marks'
+import { useExcluded, useFavorites } from '../storage/marks'
+import { useAnswered } from '../storage/answered'
 import { createPersistentStore } from '../storage/local'
+import { filterToQuery, inRotation, selectQuestions } from '../quiz/selectQuestions'
 
 const selectionStore = createPersistentStore<string[]>('selected-sections', [])
+const optionsStore = createPersistentStore('quiz-options', { withFavorites: false, onlyNew: false })
 const allSectionIds = epic.sections.map((s) => s.id)
 
 function Checkbox({
@@ -30,17 +33,32 @@ export function Home() {
     selectionStore.get().filter((id) => questionCountBySection.has(id)),
   )
   const excluded = useExcluded()
-  // Counts of questions still in rotation, i.e. not excluded.
+  const favorites = useFavorites()
+  const answered = useAnswered()
+  const options = optionsStore.use()
+  const { withFavorites, onlyNew } = options
+  // Counts of questions that would go into a quiz: not excluded and, with "only new", not answered.
   const available = useMemo(() => {
-    const m = new Map(questionCountBySection)
-    const ids = new Set(excluded)
-    epic.questions.forEach((q) => ids.has(q.id) && m.set(q.section, (m.get(q.section) ?? 0) - 1))
+    const ex = new Set(excluded)
+    const ans = new Set(answered)
+    const m = new Map<string, number>()
+    epic.questions.forEach(
+      (q) => inRotation(q, onlyNew, ex, ans) && m.set(q.section, (m.get(q.section) ?? 0) + 1),
+    )
     return m
-  }, [excluded])
+  }, [excluded, answered, onlyNew])
   const countOf = (id: string) => available.get(id) ?? 0
-  const total = selected.reduce((sum, id) => sum + countOf(id), 0)
   const availableTotal = allSectionIds.reduce((sum, id) => sum + countOf(id), 0)
-  const excludedCount = epic.questions.length - availableTotal
+  const excludedCount = useMemo(() => {
+    const ex = new Set(excluded)
+    return epic.questions.filter((q) => ex.has(q.id)).length
+  }, [excluded])
+  const answeredCount = useMemo(() => {
+    const ans = new Set(answered)
+    return epic.questions.filter((q) => ans.has(q.id)).length
+  }, [answered])
+  const filter = { sections: allSectionIds.filter((id) => selected.includes(id)), withFavorites, onlyNew }
+  const total = selectQuestions(epic.questions, filter, { favorites, excluded, answered }).length
 
   function update(next: string[]) {
     setSelected(next)
@@ -110,11 +128,39 @@ export function Home() {
         </p>
       )}
 
+      <div className="quiz-options">
+        <label className="topic">
+          <input
+            type="checkbox"
+            checked={withFavorites}
+            onChange={() => optionsStore.set({ ...options, withFavorites: !withFavorites })}
+          />
+          <span>
+            Mix in favorites
+            <small className="muted">All starred questions, from any topic</small>
+          </span>
+          <span className="count">★ {favorites.length}</span>
+        </label>
+        <label className="topic">
+          <input
+            type="checkbox"
+            checked={onlyNew}
+            onChange={() => optionsStore.set({ ...options, onlyNew: !onlyNew })}
+          />
+          <span>
+            Only new questions
+            <small className="muted">
+              Skip questions you've already answered{answeredCount > 0 && ` (${answeredCount})`}
+            </small>
+          </span>
+        </label>
+      </div>
+
       <div className="next-bar">
         <button
           className="btn primary"
           disabled={total === 0}
-          onClick={() => navigate(`/quiz?s=${allSectionIds.filter((id) => selected.includes(id)).join(',')}`)}
+          onClick={() => navigate(`/quiz?${filterToQuery(filter)}`)}
         >
           Start · {total} questions
         </button>

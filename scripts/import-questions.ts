@@ -3,10 +3,13 @@
  *   src/data/foundation-4.0.1.json  — bundled into the app (no runtime requests)
  *   public/q-img/<id>.png            — images, loaded only when their question is shown
  *
- * Usage: npm run import [-- path/to/export.json]
+ * Usage: npm run import [-- path/to/export.json] [--allow-removed]
+ *
+ * Favorites and excluded marks on users' devices are keyed by question id, so by default the
+ * import refuses to drop any id that is in the current bank. Pass --allow-removed to override.
  */
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 interface ExportQuestion {
@@ -27,7 +30,9 @@ interface ExportQuiz {
 }
 
 const ROOT = join(import.meta.dirname, '..')
-const SRC = resolve(process.argv[2] ?? join(ROOT, 'raw', 'istqb_questions.json'))
+const args = process.argv.slice(2)
+const ALLOW_REMOVED = args.includes('--allow-removed')
+const SRC = resolve(args.find((a) => !a.startsWith('--')) ?? join(ROOT, 'raw', 'istqb_questions.json'))
 const OUT = join(ROOT, 'src', 'data', 'foundation-4.0.1.json')
 const IMG_DIR = join(ROOT, 'public', 'q-img')
 
@@ -81,10 +86,11 @@ function questionId(text: string, options: string[], image = ''): string {
 
 function main() {
   const data = JSON.parse(readFileSync(SRC, 'utf8')) as { quizzes: ExportQuiz[] }
+  const previousIds: string[] = existsSync(OUT)
+    ? (JSON.parse(readFileSync(OUT, 'utf8')) as { questions: { id: string }[] }).questions.map((q) => q.id)
+    : []
 
-  rmSync(IMG_DIR, { recursive: true, force: true })
-  mkdirSync(IMG_DIR, { recursive: true })
-
+  const images = new Map<string, Buffer>()
   const sectionTitles = new Map<string, { chapter: number; title: string }>()
   const questions = new Map<string, object>()
   const problems: string[] = []
@@ -126,7 +132,7 @@ function main() {
             const ext = m[1] === 'jpeg' ? 'jpg' : m[1]
             const bytes = Buffer.from(m[2], 'base64')
             image = `${id}.${ext}`
-            writeFileSync(join(IMG_DIR, image), bytes)
+            images.set(image, bytes)
             imageBytes += bytes.length
             imageCount++
           }
@@ -144,6 +150,22 @@ function main() {
       }
     }
   }
+
+  // Check before touching any file, so a bad export leaves the current bank intact.
+  const removed = previousIds.filter((id) => !questions.has(id))
+  if (removed.length) {
+    console.error(`${removed.length} question ids from the current bank are missing in the export:`)
+    removed.slice(0, 20).forEach((id) => console.error(`  ${id}`))
+    if (!ALLOW_REMOVED) {
+      console.error('Users would lose favorites/excluded marks on them. Nothing written.')
+      console.error('Re-run with --allow-removed if this is intended.')
+      process.exit(1)
+    }
+  }
+
+  rmSync(IMG_DIR, { recursive: true, force: true })
+  mkdirSync(IMG_DIR, { recursive: true })
+  images.forEach((bytes, file) => writeFileSync(join(IMG_DIR, file), bytes))
 
   const sections = [...sectionTitles.entries()]
     .sort(([a], [b]) => compareSections(a, b))
@@ -168,6 +190,9 @@ function main() {
   })
 
   console.log(`Wrote ${epic.questions.length} questions to ${OUT}`)
+  if (previousIds.length) {
+    console.log(`New since last import: ${epic.questions.length - previousIds.length + removed.length}`)
+  }
   console.log(`Images: ${imageCount} files, ${(imageBytes / 1024).toFixed(0)} KB in ${IMG_DIR}`)
   if (duplicates) console.log(`Skipped duplicates: ${duplicates}`)
   for (const c of chapters) {

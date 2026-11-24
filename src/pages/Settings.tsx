@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { saveNick, useNick } from '../storage/useNick'
 import { resetStreak, useStreak } from '../storage/useStreak'
 import { clearExcluded, clearFavorites, useExcluded, useFavorites } from '../storage/marks'
+import { clearAnswered, useAnswered } from '../storage/answered'
 
 export function Settings() {
   const nick = useNick()
@@ -10,6 +11,7 @@ export function Settings() {
   const streak = useStreak()
   const favorites = useFavorites()
   const excluded = useExcluded()
+  const answered = useAnswered()
 
   return (
     <section>
@@ -69,6 +71,18 @@ export function Settings() {
           onClick={() => confirm('Bring all excluded questions back?') && clearExcluded()}
         >
           Restore excluded
+        </button>
+      </div>
+
+      <div className="card">
+        <p>Answered questions: {answered.length}</p>
+        <p className="muted small">Used by "Only new questions" on the topics screen.</p>
+        <button
+          className="btn"
+          disabled={!answered.length}
+          onClick={() => confirm('Forget which questions you have answered?') && clearAnswered()}
+        >
+          Reset answered
         </button>
       </div>
 

@@ -4,6 +4,7 @@ import type { Question } from '../types'
 import { buildDeck } from './buildDeck'
 import { QuestionCard } from './QuestionCard'
 import { recordAnswer, useStreak } from '../storage/useStreak'
+import { markAnswered } from '../storage/answered'
 
 interface Props {
   questions: Question[]
@@ -63,6 +64,7 @@ export function QuizRunner({ questions, backTo, backLabel }: Props) {
         isLast={index === deck.length - 1}
         onAnswered={(ok) => {
           recordAnswer(ok)
+          markAnswered(q.id)
           setAnswered((n) => n + 1)
           if (ok) setCorrectCount((n) => n + 1)
         }}
