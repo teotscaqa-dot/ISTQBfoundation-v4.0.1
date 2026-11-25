@@ -242,8 +242,32 @@ label[for] { display: block; font-weight: 600; margin-bottom: 8px; }
 .feedback.ok { background: var(--ok-bg); color: var(--ok); }
 .feedback.bad { background: var(--bad-bg); color: var(--bad); }
 
-.quiz-options { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 12px; }
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 20px;
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+}
 .quiz-options small { display: block; font-weight: 400; font-size: 0.8rem; margin-top: 2px; }
+/* Plain "I agree to the terms" style: no card, small box aligned with the first text line. */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.consent input {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+  cursor: pointer;
+}
 
 .next-bar { display: flex; justify-content: flex-end; margin-top: 16px; }
 

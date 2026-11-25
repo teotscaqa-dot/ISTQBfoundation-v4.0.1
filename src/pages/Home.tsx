@@ -129,19 +129,18 @@ export function Home() {
       )}
 
       <div className="quiz-options">
-        <label className="topic">
+        <label className="consent">
           <input
             type="checkbox"
             checked={withFavorites}
             onChange={() => optionsStore.set({ ...options, withFavorites: !withFavorites })}
           />
           <span>
-            Mix in favorites
+            Mix with favorites <span className="muted">· ★ {favorites.length}</span>
             <small className="muted">All starred questions, from any topic</small>
           </span>
-          <span className="count">★ {favorites.length}</span>
         </label>
-        <label className="topic">
+        <label className="consent">
           <input
             type="checkbox"
             checked={onlyNew}
