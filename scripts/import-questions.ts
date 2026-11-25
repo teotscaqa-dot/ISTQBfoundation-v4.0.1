@@ -56,12 +56,19 @@ const cleanQuestion = (s: string) =>
       .replace(/^Question\s+\d+\s*:\s*/i, ''),
   )
 
+/**
+ * Header line like "Question #1 (1 Point) (5.1.1.761)" (chapter 5+ quizzes). Stripped from the shown text only:
+ * ids are computed from cleanQuestion() output, so they stay stable, and questions already in the bank keep their text.
+ */
+const stripQuestionHeader = (s: string) =>
+  clean(s.replace(/^Question\s*#\s*\d+\s*\(\d+\s*Points?\)\s*(\(\d+(\.\d+)+\))?\s*/i, ''))
+
 /** "1.4 (2) Test Activities, Testware and Test Roles - Quiz II" -> ["1.4", "Test Activities, ..."] */
 function parseSection(quizTitle: string): [string, string] {
   const m = quizTitle.match(/^(\d+(?:\.\d+)+)\.?\s*(.*)$/)
   if (!m) throw new Error(`Cannot read section number from quiz title: "${quizTitle}"`)
   const title = m[2]
-    .replace(/^\(\d+\)\s*/, '')
+    .replace(/^\(\d+(?:\.\d+)*\)\s*/, '')
     .replace(/\s*-\s*Quiz\s+[IVX\d]+\s*$/i, '')
     .replace(/\s*Part\s*\d+\.?\s*$/i, '')
     .trim()
@@ -86,9 +93,12 @@ function questionId(text: string, options: string[], image = ''): string {
 
 function main() {
   const data = JSON.parse(readFileSync(SRC, 'utf8')) as { quizzes: ExportQuiz[] }
-  const previousIds: string[] = existsSync(OUT)
-    ? (JSON.parse(readFileSync(OUT, 'utf8')) as { questions: { id: string }[] }).questions.map((q) => q.id)
+  const previousQuestions = existsSync(OUT)
+    ? (JSON.parse(readFileSync(OUT, 'utf8')) as { questions: { id: string; text: string }[] }).questions
     : []
+  const previousIds = previousQuestions.map((q) => q.id)
+  // Questions already in the bank keep their shown text exactly; only new ones get the header stripped.
+  const previousText = new Map(previousQuestions.map((q) => [q.id, q.text]))
 
   const images = new Map<string, Buffer>()
   const sectionTitles = new Map<string, { chapter: number; title: string }>()
@@ -141,7 +151,7 @@ function main() {
         questions.set(id, {
           id,
           section,
-          text,
+          text: previousText.get(id) ?? stripQuestionHeader(text),
           options,
           correct,
           ...(q.explanation?.trim() ? { explanation: clean(q.explanation) } : {}),

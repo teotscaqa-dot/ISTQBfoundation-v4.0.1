@@ -4,6 +4,6 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   base: './',
   plugins: [react()],
-  // The question bank is bundled on purpose (~1.3 MB of text, ~380 KB gzipped).
-  build: { chunkSizeWarningLimit: 2000 },
+  // The question bank is bundled on purpose (~2 MB of text, ~550 KB gzipped).
+  build: { chunkSizeWarningLimit: 3000 },
 })
